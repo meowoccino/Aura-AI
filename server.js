@@ -6,10 +6,17 @@ const ALLOWED_ORIGIN = "https://meowoccino.github.io";
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin || "";
-
-  // Normalize the URL path, ignoring query strings and trailing slashes.
   const pathname =
     new URL(req.url, "http://localhost").pathname.replace(/\/+$/, "") || "/";
+
+  // Diagnostic: log requests without logging secrets or message contents.
+  console.log(
+    "Incoming request:",
+    req.method,
+    pathname,
+    "origin:",
+    origin || "(none)"
+  );
 
   if (origin === ALLOWED_ORIGIN) {
     res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
@@ -18,51 +25,49 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Vary", "Origin");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
+  // Handle browser CORS preflight requests.
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.writeHead(204);
     return res.end();
   }
 
-  // Root and health-check endpoints.
+  // Health checks.
   if (
     (pathname === "/" || pathname === "/health") &&
     req.method === "GET"
   ) {
     res.writeHead(200);
-    return res.end(
-      JSON.stringify({
-        status: "ok",
-        service: "AURA"
-      })
-    );
+    return res.end(JSON.stringify({
+      status: "ok",
+      service: "AURA"
+    }));
   }
 
-  // Only the chat endpoint accepts POST requests.
   if (pathname !== "/chat" || req.method !== "POST") {
     res.writeHead(404);
-    return res.end(
-      JSON.stringify({
-        error: "Not found",
-        path: pathname
-      })
-    );
+    return res.end(JSON.stringify({
+      error: "Not found",
+      path: pathname
+    }));
   }
 
-  // Restrict browser requests to the AURA website.
+  // Only allow the AURA website to make browser chat requests.
   if (origin !== ALLOWED_ORIGIN) {
+    console.warn("Chat request rejected: origin not allowed");
     res.writeHead(403);
-    return res.end(
-      JSON.stringify({ error: "Origin not allowed" })
-    );
+    return res.end(JSON.stringify({
+      error: "Origin not allowed"
+    }));
   }
 
   if (!process.env.OPENROUTER_API_KEY) {
+    console.error("OPENROUTER_API_KEY is missing in Render environment");
     res.writeHead(500);
-    return res.end(
-      JSON.stringify({ error: "Model key is not configured" })
-    );
+    return res.end(JSON.stringify({
+      error: "Model key is not configured"
+    }));
   }
 
   try {
@@ -73,13 +78,22 @@ const server = http.createServer(async (req, res) => {
 
       if (raw.length > 30000) {
         res.writeHead(413);
-        return res.end(
-          JSON.stringify({ error: "Request too large" })
-        );
+        return res.end(JSON.stringify({
+          error: "Request too large"
+        }));
       }
     }
 
-    const body = JSON.parse(raw);
+    let body;
+
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      res.writeHead(400);
+      return res.end(JSON.stringify({
+        error: "Invalid JSON request"
+      }));
+    }
 
     if (
       !Array.isArray(body.messages) ||
@@ -87,15 +101,17 @@ const server = http.createServer(async (req, res) => {
       body.messages.length > 30
     ) {
       res.writeHead(400);
-      return res.end(
-        JSON.stringify({ error: "Invalid messages" })
-      );
+      return res.end(JSON.stringify({
+        error: "Invalid messages"
+      }));
     }
 
     const messages = body.messages.map((message) => ({
       role: message.role === "assistant" ? "assistant" : "user",
       content: String(message.content || "").slice(0, 6000)
     }));
+
+    console.log("Sending chat request to OpenRouter");
 
     const upstream = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -118,44 +134,55 @@ const server = http.createServer(async (req, res) => {
             ...messages
           ],
           temperature: 0.8
-        })
+        }),
+        signal: AbortSignal.timeout(60000)
       }
     );
+
+    console.log("OpenRouter HTTP status:", upstream.status);
 
     const data = await upstream.json();
 
     if (!upstream.ok) {
+      // Log the status and provider error, never the API key.
       console.error(
         "OpenRouter error:",
         upstream.status,
-        data.error
+        data?.error?.message || data?.error?.code || "Unknown provider error"
       );
 
       res.writeHead(502);
-      return res.end(
-        JSON.stringify({
-          error: "The model request failed. Check the backend logs."
-        })
-      );
+      return res.end(JSON.stringify({
+        error: "The model request failed. Check the backend logs."
+      }));
     }
 
+    const reply = data.choices?.[0]?.message?.content;
+
+    if (!reply) {
+      console.error("OpenRouter returned no message content");
+      res.writeHead(502);
+      return res.end(JSON.stringify({
+        error: "The model returned an empty reply."
+      }));
+    }
+
+    console.log("AURA reply generated successfully");
+
     res.writeHead(200);
-    return res.end(
-      JSON.stringify({
-        reply:
-          data.choices?.[0]?.message?.content ||
-          "I couldn't generate a reply."
-      })
-    );
+    return res.end(JSON.stringify({ reply }));
+
   } catch (error) {
-    console.error("Request error:", error);
+    console.error(
+      "Chat request failed:",
+      error?.name || "Error",
+      error?.message || "Unknown error"
+    );
 
     res.writeHead(500);
-    return res.end(
-      JSON.stringify({
-        error: "Request failed. Please try again."
-      })
-    );
+    return res.end(JSON.stringify({
+      error: "Request failed. Please try again."
+    }));
   }
 });
 
