@@ -8,64 +8,76 @@
 <title>AURA</title>
 <style>
 *{box-sizing:border-box}
+:root{color-scheme:dark}
 body{margin:0;background:#111114;color:#f4f2f8;font-family:system-ui,sans-serif}
-.app{height:100dvh;max-width:700px;margin:auto;display:flex;flex-direction:column}
-header{padding:16px;border-bottom:1px solid #292932;display:flex;align-items:center;gap:12px}
-.avatar{width:38px;height:38px;border-radius:50%;background:#a78bfa;color:#191522;display:grid;place-items:center;font-weight:bold}
-h1{font-size:17px;margin:0}
+.app{height:100dvh;max-width:760px;margin:auto;display:flex;flex-direction:column}
+header{padding:13px 16px;border-bottom:1px solid #292932;display:flex;align-items:center;gap:12px}
+.avatar{width:48px;height:48px;flex:none;border-radius:50%;position:relative;overflow:hidden;background:radial-gradient(circle at 35% 28%,#f3e8ff 0,#c4b5fd 18%,#8b5cf6 48%,#35205f 78%,#17121f 100%);box-shadow:0 0 22px #8b5cf655,inset 0 0 12px #ffffff44}
+.avatar:before{content:"";position:absolute;width:25px;height:25px;left:11px;top:10px;border:2px solid #f4eaff;border-radius:50%;box-shadow:0 0 12px #fff9}
+.avatar:after{content:"";position:absolute;width:5px;height:5px;left:21px;top:20px;border-radius:50%;background:white;box-shadow:0 0 10px 4px #fff9}
+h1{font-size:17px;margin:0;letter-spacing:1.5px}
 .sub{font-size:12px;color:#a5a2b0;margin-top:3px}
-#chat{flex:1;overflow:auto;padding:20px 14px;display:flex;flex-direction:column;gap:16px}
-.welcome{text-align:center;color:#aaa6b5;margin:auto;line-height:1.6}
-.welcome strong{display:block;color:#f4f2f8;font-size:24px;margin-bottom:8px}
-.msg{max-width:85%;padding:12px 15px;border-radius:18px;background:#202027;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}
-.user{align-self:flex-end;background:#7660c9;border-bottom-right-radius:5px}
-.assistant{align-self:flex-start;border-bottom-left-radius:5px}
-form{display:flex;gap:8px;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #292932}
-textarea{flex:1;resize:none;max-height:120px;border:1px solid #34333e;border-radius:22px;padding:12px;background:#1b1b21;color:white;font:inherit;outline:none}
-button{width:46px;min-width:46px;border:0;border-radius:22px;background:#a78bfa;color:#191522;font-size:18px;font-weight:bold;padding:8px}
+#login{padding:10px 12px;display:flex;gap:8px;border-bottom:1px solid #292932}
+#login[hidden]{display:none}
+#token{flex:1;min-width:0;border:1px solid #34333e;border-radius:14px;padding:11px;background:#1b1b21;color:white;font:inherit}
+button{border:0;border-radius:14px;background:#a78bfa;color:#191522;font-size:15px;font-weight:650;padding:10px 16px}
 button:disabled{opacity:.5}
-#login{padding:12px;display:flex;gap:8px;border-bottom:1px solid #292932}
-#token{flex:1;min-width:0;border:1px solid #34333e;border-radius:12px;padding:10px;background:#1b1b21;color:white}
-#login button{width:auto}
+#chat{flex:1;overflow:auto;padding:18px 13px;display:flex;flex-direction:column;gap:7px;scroll-behavior:smooth}
+.welcome{text-align:center;color:#aaa6b5;margin:auto;line-height:1.7;padding:20px}
+.welcome strong{display:block;color:#f4f2f8;font-size:25px;margin-bottom:8px}
+.message-row{display:flex;flex-direction:column;max-width:88%;gap:4px}
+.message-row.user{align-self:flex-end;align-items:flex-end}
+.message-row.assistant{align-self:flex-start;align-items:flex-start}
+.msg{padding:11px 14px;border-radius:18px;background:#202027;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}
+.user .msg{background:#7660c9;color:#fff;border-bottom-right-radius:5px}
+.assistant .msg{border-bottom-left-radius:5px}
+.stamp{font-size:10px;color:#8f8b9c;padding:0 5px}
+.user .stamp{text-align:right}
+form{display:flex;gap:8px;padding:11px 12px;padding-bottom:calc(11px + env(safe-area-inset-bottom));border-top:1px solid #292932;align-items:flex-end}
+textarea{flex:1;resize:none;max-height:120px;min-width:0;border:1px solid #34333e;border-radius:22px;padding:12px;background:#1b1b21;color:white;font:inherit;outline:none}
+textarea:focus,#token:focus{border-color:#a78bfa}
+#send{width:46px;height:46px;padding:0;border-radius:50%;font-size:22px}
 </style>
 </head>
 <body>
 <div class="app">
 <header>
-  <div class="avatar">A</div>
+  <div class="avatar" role="img" aria-label="AURA's avatar"></div>
   <div>
     <h1>AURA</h1>
-    <div class="sub" id="status">Private companion</div>
+    <div class="sub" id="status">Your conversation space</div>
   </div>
 </header>
 
 <div id="login">
   <input id="token" type="password" autocomplete="current-password"
-         placeholder="Your private access token" aria-label="Access token">
+         placeholder="Private access token" aria-label="Access token">
   <button id="connect" type="button">Connect</button>
 </div>
 
 <main id="chat">
   <div class="welcome">
-    <strong>Hi, I'm AURA.</strong>
-    Your conversation will be saved here.
+    <strong>AURA</strong>
+    A new conversation, saved as we go.
   </div>
 </main>
 
 <form id="form">
   <textarea id="input" rows="1" placeholder="Message AURA..."
             aria-label="Message AURA" disabled></textarea>
-  <button id="send" type="submit" disabled>↑</button>
+  <button id="send" type="submit" aria-label="Send" disabled>↑</button>
 </form>
 </div>
 
 <script>
 const API_URL = "https://aura-svzi.onrender.com";
+
 const chat = document.querySelector("#chat");
 const input = document.querySelector("#input");
 const form = document.querySelector("#form");
 const send = document.querySelector("#send");
 const statusText = document.querySelector("#status");
+const login = document.querySelector("#login");
 const tokenInput = document.querySelector("#token");
 const connectButton = document.querySelector("#connect");
 
@@ -78,14 +90,46 @@ if (!sessionId) {
   localStorage.setItem("aura_session_id", sessionId);
 }
 
-function addBubble(text, role) {
+function formatTime(value = new Date()) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function addBubble(text, role, timestamp = new Date()) {
   chat.querySelector(".welcome")?.remove();
+
+  const row = document.createElement("div");
+  row.className = "message-row " + role;
+
   const bubble = document.createElement("div");
-  bubble.className = "msg " + role;
+  bubble.className = "msg";
   bubble.textContent = text;
-  chat.appendChild(bubble);
+
+  const stamp = document.createElement("div");
+  stamp.className = "stamp";
+  stamp.textContent = formatTime(timestamp);
+  stamp.title = new Date(timestamp).toLocaleString();
+
+  row.append(bubble, stamp);
+  chat.appendChild(row);
   chat.scrollTop = chat.scrollHeight;
-  return bubble;
+
+  return { row, bubble, stamp };
+}
+
+function showWelcome() {
+  chat.innerHTML = "";
+  const welcome = document.createElement("div");
+  welcome.className = "welcome";
+
+  const title = document.createElement("strong");
+  title.textContent = "AURA";
+  welcome.append(title, document.createTextNode("A new conversation, saved as we go."));
+  chat.appendChild(welcome);
 }
 
 async function api(path, body) {
@@ -99,16 +143,19 @@ async function api(path, body) {
   });
 
   const data = await response.json();
+
   if (!response.ok) {
     if (response.status === 401) {
       token = "";
       sessionStorage.removeItem("aura_access_token");
       input.disabled = true;
       send.disabled = true;
-      statusText.textContent = "Access denied — reconnect";
+      login.hidden = false;
+      statusText.textContent = "Please reconnect";
     }
     throw new Error(data.error || "Request failed");
   }
+
   return data;
 }
 
@@ -126,30 +173,30 @@ async function connect() {
 
   try {
     const data = await api("/history", { sessionId });
+
     sessionStorage.setItem("aura_access_token", token);
-    tokenInput.value = "";
-    tokenInput.placeholder = "Connected";
+    login.hidden = true;
     input.disabled = false;
     send.disabled = false;
     chat.innerHTML = "";
 
-    if (data.messages.length === 0) {
-      const welcome = document.createElement("div");
-      welcome.className = "welcome";
-      welcome.innerHTML = "<strong>Hi, I'm AURA.</strong>What would you like to talk about?";
-      chat.appendChild(welcome);
+    if (!data.messages.length) {
+      showWelcome();
     } else {
-      data.messages.forEach(message => addBubble(message.content, message.role));
+      data.messages.forEach(message =>
+        addBubble(message.content, message.role, message.created_at)
+      );
     }
 
     statusText.textContent = "Connected · history restored";
+    chat.scrollTop = chat.scrollHeight;
   } catch (error) {
     token = "";
-    statusText.textContent =
-      error.message.includes("Access denied")
-        ? "Incorrect access token"
-        : "Could not connect — check Render";
-    console.error(error);
+    login.hidden = false;
+    statusText.textContent = error.message.includes("Access denied")
+      ? "Incorrect access token"
+      : "Could not connect — check Render";
+    console.error("AURA connection error:", error);
   } finally {
     connectButton.disabled = false;
   }
@@ -165,25 +212,32 @@ if (token) connect();
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
+
   const text = input.value.trim();
   if (!text || send.disabled || busy) return;
 
-  addBubble(text, "user");
+  const userTime = new Date();
+  addBubble(text, "user", userTime);
+
   input.value = "";
   input.style.height = "auto";
   busy = true;
   send.disabled = true;
   statusText.textContent = "AURA is thinking…";
-  const waiting = addBubble("Thinking…", "assistant");
+
+  const waiting = addBubble("Thinking…", "assistant", new Date());
 
   try {
     const data = await api("/chat", { sessionId, text });
-    waiting.textContent = data.reply;
+    waiting.bubble.textContent = data.reply;
+    waiting.stamp.textContent = formatTime(data.created_at || new Date());
+    waiting.stamp.title = new Date(data.created_at || Date.now()).toLocaleString();
     statusText.textContent = "Connected · history saved";
   } catch (error) {
-    waiting.textContent = "I couldn't complete that request. " + error.message;
+    waiting.bubble.textContent = "I couldn't complete that request. " + error.message;
+    waiting.stamp.textContent = formatTime(new Date());
     statusText.textContent = "Connection issue";
-    console.error(error);
+    console.error("AURA chat error:", error);
   } finally {
     busy = false;
     send.disabled = !token;
