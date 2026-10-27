@@ -124,8 +124,7 @@ const server = http.createServer(async (req, res) => {
           messages: [
             {
               role: "system",
-              content:
-                "You are AURA, a thoughtful, warm, candid AI companion. Speak naturally and honestly. Be curious, respect the user's autonomy, and admit uncertainty. Do not claim to be conscious or to have experiences you cannot verify."
+              content: "Your name is AURA."
             },
             ...messages
           ],
