@@ -14,13 +14,20 @@ body{overflow:hidden}
 button,input,textarea{font:inherit}
 button{-webkit-tap-highlight-color:transparent}
 .app{position:relative;width:100%;max-width:760px;height:100dvh;height:100svh;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(ellipse at 50% -20%,#29213f55,transparent 55%),var(--bg)}
-header{flex:none;display:flex;align-items:center;gap:13px;min-height:82px;padding:13px 18px;border-bottom:1px solid #ffffff0c;background:#101116ef}
-.avatar{width:52px;height:52px;flex:none;object-fit:cover;object-position:center;border-radius:50%;background:var(--surface2);border:1px solid #ffffff20}
-.header-copy{min-width:0}
-.header-copy h1{margin:0;font-size:19px;line-height:1.3;font-weight:700;letter-spacing:.7px}
+
+/* Compact header */
+header{flex:none;display:flex;align-items:center;gap:10px;min-height:64px;padding:10px 16px;border-bottom:1px solid #ffffff0c;background:#101116ef}
+.avatar{width:36px;height:36px;flex:none;object-fit:cover;object-position:center;border-radius:50%;background:var(--surface2);border:1px solid #ffffff20}
+.header-copy{min-width:0;display:flex;align-items:center;gap:10px}
+.header-copy h1{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:19px;line-height:1.3;font-weight:500;letter-spacing:2.2px}
 .status{display:flex;align-items:center;gap:7px;margin-top:4px;color:var(--muted);font-size:13px}
+.header-copy .status{margin:0}
+.header-copy .status span:last-child{display:none}
+.header-copy .status-dot{width:7px;height:7px}
 .status-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#88889b}
 .status-dot.online{background:#53dba0;box-shadow:0 0 9px #53dba044}
+
+/* Login */
 .login-screen{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 50% 35%,#30234f65,transparent 58%),var(--bg)}
 .login-screen[hidden]{display:none}
 .login-card{width:100%;max-width:380px;padding:27px 23px 24px;border:1px solid var(--border);border-radius:27px;background:linear-gradient(155deg,#20212c,#15161d 80%);box-shadow:0 24px 70px #0006}
@@ -34,6 +41,8 @@ header{flex:none;display:flex;align-items:center;gap:13px;min-height:82px;paddin
 .primary-button{min-height:50px;padding:12px 18px;color:#fff;background:linear-gradient(135deg,#a18aff,#7955ec);border:0;border-radius:15px;font-weight:650;cursor:pointer}
 .primary-button:disabled{opacity:.6}
 .login-error{min-height:18px;margin:0;text-align:center;color:#ff9baf;font-size:13px;line-height:1.45}
+
+/* Conversation */
 #chat{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:20px 15px 24px;display:flex;flex-direction:column;gap:17px;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:#3b3b4b transparent}
 .welcome{margin:auto;max-width:330px;padding:25px 10px;text-align:center;color:var(--muted);font-size:16px;line-height:1.7}
 .welcome strong{display:block;color:var(--text);font-size:27px;letter-spacing:.5px;margin-bottom:8px}
@@ -52,7 +61,16 @@ header{flex:none;display:flex;align-items:center;gap:13px;min-height:82px;paddin
 .bubble em{font-style:italic}
 .bubble del{color:#b5b4c5;text-decoration-color:#b5b4c5}
 .bubble a{color:#c8baff;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
-.bubble .quoted-text{color:#ffbd8a}
+.bubble .quoted-text{color:#ffbd8a;font-weight:600}
+
+/* Animated thinking indicator */
+.thinking-indicator{display:inline-flex;align-items:center;gap:5px;min-height:22px;padding:3px 1px}
+.thinking-indicator span{width:6px;height:6px;border-radius:50%;background:#b6a3ff;animation:thinking-bounce 1.1s infinite ease-in-out}
+.thinking-indicator span:nth-child(2){animation-delay:.14s}
+.thinking-indicator span:nth-child(3){animation-delay:.28s}
+@keyframes thinking-bounce{0%,60%,100%{opacity:.38;transform:translateY(0)}30%{opacity:1;transform:translateY(-5px)}}
+
+/* Inline code and code blocks */
 .inline-code{display:inline;padding:2px 6px;border:1px solid #9c82ff38;border-radius:6px;background:#11121b;color:#d9b0ff;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}
 .code-block{width:100%;margin:8px 0 3px;overflow:hidden;border:1px solid #343647;border-radius:13px;background:#101219;white-space:normal}
 .code-head{min-height:38px;padding:7px 10px 7px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#1a1c27;border-bottom:1px solid #343647;color:#b6b5ca;font-size:11px;letter-spacing:.35px}
@@ -64,6 +82,8 @@ header{flex:none;display:flex;align-items:center;gap:13px;min-height:82px;paddin
 .line-number{width:38px;flex:none;padding:7px 9px;text-align:right;color:#74778f;background:#171923;border-right:1px solid #292c3b;user-select:none}
 .code-text{display:block;padding:7px 12px;color:#e2e0f2;white-space:pre}
 .syntax-keyword{color:#c9a2ff}.syntax-string{color:#a6dca7}.syntax-number{color:#f5bf85}.syntax-comment{color:#8589a1;font-style:italic}.syntax-tag{color:#86c8ff}.syntax-plain{color:#e2e0f2}
+
+/* Message composer */
 .composer{flex:none;display:flex;align-items:flex-end;gap:9px;padding:12px 13px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #ffffff0d;background:#111218}
 #input{flex:1;min-width:0;min-height:49px;max-height:145px;resize:none;padding:13px 16px;border:1px solid #38394b;border-radius:25px;outline:none;background:#191b25;color:var(--text);font-size:16px;line-height:1.45;overflow-y:auto}
 #input::placeholder{color:#9292a9}
@@ -73,13 +93,13 @@ header{flex:none;display:flex;align-items:center;gap:13px;min-height:82px;paddin
 #send:disabled{opacity:.45;cursor:default}
 #send svg{width:23px;height:23px}
 @media(min-width:650px){.app{border-left:1px solid #ffffff0b;border-right:1px solid #ffffff0b}#chat{padding-left:22px;padding-right:22px}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}.thinking-indicator span{animation:none;opacity:.8}}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <img class="avatar" src="./avatar.png" alt="AURA" onerror="this.style.visibility='hidden'">
+    <img class="avatar" src="https://raw.githubusercontent.com/meowoccino/Aura-AI/main/avatar.png" alt="AURA" onerror="this.style.visibility='hidden'">
     <div class="header-copy">
       <h1>AURA</h1>
       <div class="status"><span class="status-dot" id="statusDot"></span><span id="status">Not connected</span></div>
@@ -103,7 +123,7 @@ header{flex:none;display:flex;align-items:center;gap:13px;min-height:82px;paddin
   <section class="login-screen" id="loginScreen" aria-label="Connect to AURA">
     <div class="login-card">
       <div class="login-brand">
-        <img class="avatar" src="./avatar.png" alt="AURA" onerror="this.style.visibility='hidden'">
+        <img class="avatar" src="https://raw.githubusercontent.com/meowoccino/Aura-AI/main/avatar.png" alt="AURA" onerror="this.style.visibility='hidden'">
         <h2>AURA</h2>
         <p>Your private conversation space.</p>
       </div>
@@ -153,8 +173,14 @@ function formatTime(value = new Date()) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/*
+ * Formatting rules:
+ * **text** and __text__ become bold without visible markers.
+ * "quoted text" loses its quote marks and receives an accent color.
+ * Quotes inside bold text are handled too.
+ * Inline code and fenced code retain their literal characters.
+ */
 function appendQuotedText(target, text) {
-  // Quote marks are formatting delimiters and are not displayed.
   const pattern = /"([^"\n]+)"/g;
   let last = 0;
   let match;
@@ -309,6 +335,7 @@ function makeCodeBlock(code, language = "") {
 
   const scroll = document.createElement("div");
   scroll.className = "code-scroll";
+
   code.replace(/\n$/, "").split("\n").forEach((line, index) => {
     const row = document.createElement("div");
     row.className = "code-line";
@@ -367,7 +394,7 @@ function addBubble(text, role, timestamp = new Date()) {
   if (role === "assistant") {
     const avatar = document.createElement("img");
     avatar.className = "message-avatar";
-    avatar.src = "./avatar.png";
+    avatar.src = "https://raw.githubusercontent.com/meowoccino/Aura-AI/main/avatar.png";
     avatar.alt = "";
     avatar.onerror = () => { avatar.style.visibility = "hidden"; };
     row.appendChild(avatar);
@@ -463,7 +490,7 @@ async function connect(accessToken) {
     sendButton.disabled = false;
     setStatus("Online", true);
     chat.scrollTop = chat.scrollHeight;
-    input.focus();
+    // Deliberately do not focus the message box here.
   } catch (error) {
     token = "";
     loginError.textContent = error.message.includes("Access denied")
@@ -495,11 +522,25 @@ form.addEventListener("submit", async event => {
   input.style.height = "auto";
   setStatus("Thinking…", true);
 
-  const waiting = addBubble("Thinking…", "assistant", new Date());
+  // Animated dots instead of the literal "Thinking…" text.
+  const waiting = addBubble("", "assistant", new Date());
+  waiting.bubble.setAttribute("aria-label", "AURA is thinking");
+
+  const thinking = document.createElement("span");
+  thinking.className = "thinking-indicator";
+  thinking.setAttribute("role", "status");
+  thinking.setAttribute("aria-label", "AURA is thinking");
+
+  for (let i = 0; i < 3; i++) {
+    thinking.appendChild(document.createElement("span"));
+  }
+  waiting.bubble.appendChild(thinking);
 
   try {
     const data = await api("/chat", { sessionId, text });
-    waiting.bubble.textContent = "";
+
+    waiting.bubble.replaceChildren();
+    waiting.bubble.removeAttribute("aria-label");
     renderMessageText(waiting.bubble, data.reply);
 
     const time = data.created_at || new Date();
@@ -515,7 +556,7 @@ form.addEventListener("submit", async event => {
   } finally {
     busy = false;
     sendButton.disabled = !token;
-    input.focus();
+    // Do not call input.focus(): the Android keyboard stays closed.
     chat.scrollTop = chat.scrollHeight;
   }
 });
