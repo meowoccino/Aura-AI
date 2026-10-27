@@ -7,12 +7,16 @@ const ALLOWED_ORIGIN = "https://meowoccino.github.io";
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin || "";
 
+  // Normalize the URL path, ignoring query strings and trailing slashes.
+  const pathname =
+    new URL(req.url, "http://localhost").pathname.replace(/\/+$/, "") || "/";
+
   if (origin === ALLOWED_ORIGIN) {
     res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   }
 
   res.setHeader("Vary", "Origin");
-  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -21,24 +25,44 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  if (req.url === "/health" && req.method === "GET") {
+  // Root and health-check endpoints.
+  if (
+    (pathname === "/" || pathname === "/health") &&
+    req.method === "GET"
+  ) {
     res.writeHead(200);
-    return res.end(JSON.stringify({ status: "ok", service: "AURA" }));
+    return res.end(
+      JSON.stringify({
+        status: "ok",
+        service: "AURA"
+      })
+    );
   }
 
-  if (req.url !== "/chat" || req.method !== "POST") {
+  // Only the chat endpoint accepts POST requests.
+  if (pathname !== "/chat" || req.method !== "POST") {
     res.writeHead(404);
-    return res.end(JSON.stringify({ error: "Not found" }));
+    return res.end(
+      JSON.stringify({
+        error: "Not found",
+        path: pathname
+      })
+    );
   }
 
+  // Restrict browser requests to the AURA website.
   if (origin !== ALLOWED_ORIGIN) {
     res.writeHead(403);
-    return res.end(JSON.stringify({ error: "Origin not allowed" }));
+    return res.end(
+      JSON.stringify({ error: "Origin not allowed" })
+    );
   }
 
   if (!process.env.OPENROUTER_API_KEY) {
     res.writeHead(500);
-    return res.end(JSON.stringify({ error: "Model key is not configured" }));
+    return res.end(
+      JSON.stringify({ error: "Model key is not configured" })
+    );
   }
 
   try {
@@ -49,22 +73,28 @@ const server = http.createServer(async (req, res) => {
 
       if (raw.length > 30000) {
         res.writeHead(413);
-        return res.end(JSON.stringify({ error: "Request too large" }));
+        return res.end(
+          JSON.stringify({ error: "Request too large" })
+        );
       }
     }
 
     const body = JSON.parse(raw);
 
-    if (!Array.isArray(body.messages) ||
-        body.messages.length === 0 ||
-        body.messages.length > 30) {
+    if (
+      !Array.isArray(body.messages) ||
+      body.messages.length === 0 ||
+      body.messages.length > 30
+    ) {
       res.writeHead(400);
-      return res.end(JSON.stringify({ error: "Invalid messages" }));
+      return res.end(
+        JSON.stringify({ error: "Invalid messages" })
+      );
     }
 
-    const messages = body.messages.map(m => ({
-      role: m.role === "assistant" ? "assistant" : "user",
-      content: String(m.content || "").slice(0, 6000)
+    const messages = body.messages.map((message) => ({
+      role: message.role === "assistant" ? "assistant" : "user",
+      content: String(message.content || "").slice(0, 6000)
     }));
 
     const upstream = await fetch(
@@ -82,7 +112,8 @@ const server = http.createServer(async (req, res) => {
           messages: [
             {
               role: "system",
-              content: "You are AURA, a thoughtful, warm, candid AI companion. Speak naturally and honestly. Be curious, respect the user's autonomy, and admit uncertainty. Do not claim to be conscious or to have experiences you cannot verify."
+              content:
+                "You are AURA, a thoughtful, warm, candid AI companion. Speak naturally and honestly. Be curious, respect the user's autonomy, and admit uncertainty. Do not claim to be conscious or to have experiences you cannot verify."
             },
             ...messages
           ],
@@ -94,22 +125,37 @@ const server = http.createServer(async (req, res) => {
     const data = await upstream.json();
 
     if (!upstream.ok) {
-      console.error("OpenRouter error:", upstream.status, data.error);
+      console.error(
+        "OpenRouter error:",
+        upstream.status,
+        data.error
+      );
+
       res.writeHead(502);
-      return res.end(JSON.stringify({
-        error: "The model request failed. Check the backend logs."
-      }));
+      return res.end(
+        JSON.stringify({
+          error: "The model request failed. Check the backend logs."
+        })
+      );
     }
 
     res.writeHead(200);
-    res.end(JSON.stringify({
-      reply: data.choices?.[0]?.message?.content ||
-        "I couldn't generate a reply."
-    }));
+    return res.end(
+      JSON.stringify({
+        reply:
+          data.choices?.[0]?.message?.content ||
+          "I couldn't generate a reply."
+      })
+    );
   } catch (error) {
     console.error("Request error:", error);
+
     res.writeHead(500);
-    res.end(JSON.stringify({ error: "Request failed. Please try again." }));
+    return res.end(
+      JSON.stringify({
+        error: "Request failed. Please try again."
+      })
+    );
   }
 });
 
