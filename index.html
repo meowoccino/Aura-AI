@@ -22,8 +22,11 @@ h1{font-size:17px;margin:0}
 .assistant{align-self:flex-start;border-bottom-left-radius:5px}
 form{display:flex;gap:8px;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #292932}
 textarea{flex:1;resize:none;max-height:120px;border:1px solid #34333e;border-radius:22px;padding:12px;background:#1b1b21;color:white;font:inherit;outline:none}
-button{width:46px;min-width:46px;border:0;border-radius:50%;background:#a78bfa;color:#191522;font-size:22px;font-weight:bold}
+button{width:46px;min-width:46px;border:0;border-radius:22px;background:#a78bfa;color:#191522;font-size:18px;font-weight:bold;padding:8px}
 button:disabled{opacity:.5}
+#login{padding:12px;display:flex;gap:8px;border-bottom:1px solid #292932}
+#token{flex:1;min-width:0;border:1px solid #34333e;border-radius:12px;padding:10px;background:#1b1b21;color:white}
+#login button{width:auto}
 </style>
 </head>
 <body>
@@ -32,97 +35,158 @@ button:disabled{opacity:.5}
   <div class="avatar">A</div>
   <div>
     <h1>AURA</h1>
-    <div class="sub" id="status">Your AI companion</div>
+    <div class="sub" id="status">Private companion</div>
   </div>
 </header>
+
+<div id="login">
+  <input id="token" type="password" autocomplete="current-password"
+         placeholder="Your private access token" aria-label="Access token">
+  <button id="connect" type="button">Connect</button>
+</div>
 
 <main id="chat">
   <div class="welcome">
     <strong>Hi, I'm AURA.</strong>
-    This is our little space to talk.<br>
-    What would you like to talk about?
+    Your conversation will be saved here.
   </div>
 </main>
 
 <form id="form">
-  <textarea id="input" rows="1" placeholder="Message AURA..." aria-label="Message AURA"></textarea>
-  <button id="send" aria-label="Send" type="submit">↑</button>
+  <textarea id="input" rows="1" placeholder="Message AURA..."
+            aria-label="Message AURA" disabled></textarea>
+  <button id="send" type="submit" disabled>↑</button>
 </form>
 </div>
 
 <script>
 const API_URL = "https://aura-svzi.onrender.com";
-
 const chat = document.querySelector("#chat");
 const input = document.querySelector("#input");
 const form = document.querySelector("#form");
 const send = document.querySelector("#send");
 const statusText = document.querySelector("#status");
+const tokenInput = document.querySelector("#token");
+const connectButton = document.querySelector("#connect");
 
-const messages = [];
+let token = "";
+let busy = false;
+
+let sessionId = localStorage.getItem("aura_session_id");
+if (!sessionId) {
+  sessionId = crypto.randomUUID();
+  localStorage.setItem("aura_session_id", sessionId);
+}
 
 function addBubble(text, role) {
   chat.querySelector(".welcome")?.remove();
-
   const bubble = document.createElement("div");
   bubble.className = "msg " + role;
   bubble.textContent = text;
-
   chat.appendChild(bubble);
   chat.scrollTop = chat.scrollHeight;
-
   return bubble;
 }
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
+async function api(path, body) {
+  const response = await fetch(API_URL + path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify(body)
+  });
 
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 401) {
+      token = "";
+      sessionStorage.removeItem("aura_access_token");
+      input.disabled = true;
+      send.disabled = true;
+      statusText.textContent = "Access denied — reconnect";
+    }
+    throw new Error(data.error || "Request failed");
+  }
+  return data;
+}
+
+async function connect() {
+  const entered = tokenInput.value.trim();
+  token = entered || sessionStorage.getItem("aura_access_token") || "";
+
+  if (!token) {
+    statusText.textContent = "Enter your access token";
+    return;
+  }
+
+  connectButton.disabled = true;
+  statusText.textContent = "Connecting…";
+
+  try {
+    const data = await api("/history", { sessionId });
+    sessionStorage.setItem("aura_access_token", token);
+    tokenInput.value = "";
+    tokenInput.placeholder = "Connected";
+    input.disabled = false;
+    send.disabled = false;
+    chat.innerHTML = "";
+
+    if (data.messages.length === 0) {
+      const welcome = document.createElement("div");
+      welcome.className = "welcome";
+      welcome.innerHTML = "<strong>Hi, I'm AURA.</strong>What would you like to talk about?";
+      chat.appendChild(welcome);
+    } else {
+      data.messages.forEach(message => addBubble(message.content, message.role));
+    }
+
+    statusText.textContent = "Connected · history restored";
+  } catch (error) {
+    token = "";
+    statusText.textContent =
+      error.message.includes("Access denied")
+        ? "Incorrect access token"
+        : "Could not connect — check Render";
+    console.error(error);
+  } finally {
+    connectButton.disabled = false;
+  }
+}
+
+connectButton.addEventListener("click", connect);
+tokenInput.addEventListener("keydown", event => {
+  if (event.key === "Enter") connect();
+});
+
+token = sessionStorage.getItem("aura_access_token") || "";
+if (token) connect();
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
   const text = input.value.trim();
-  if (!text || send.disabled) return;
+  if (!text || send.disabled || busy) return;
 
   addBubble(text, "user");
-  messages.push({ role: "user", content: text });
-
   input.value = "";
   input.style.height = "auto";
+  busy = true;
   send.disabled = true;
   statusText.textContent = "AURA is thinking…";
-
   const waiting = addBubble("Thinking…", "assistant");
 
   try {
-    const response = await fetch(API_URL + "/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: messages.slice(-30) })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "The server returned an error.");
-    }
-
-    const reply = String(
-      data.reply || "I couldn't generate a reply."
-    );
-
-    waiting.textContent = reply;
-    messages.push({ role: "assistant", content: reply });
-    statusText.textContent = "Your AI companion";
-
+    const data = await api("/chat", { sessionId, text });
+    waiting.textContent = data.reply;
+    statusText.textContent = "Connected · history saved";
   } catch (error) {
-    waiting.textContent =
-      "I couldn't connect just now. Please try again in a moment.";
-
+    waiting.textContent = "I couldn't complete that request. " + error.message;
     statusText.textContent = "Connection issue";
-    console.error("AURA chat error:", error);
-
-    // Remove the failed message from the conversation history.
-    messages.pop();
-
+    console.error(error);
   } finally {
-    send.disabled = false;
+    busy = false;
+    send.disabled = !token;
     input.focus();
     chat.scrollTop = chat.scrollHeight;
   }
@@ -130,11 +194,10 @@ form.addEventListener("submit", async (event) => {
 
 input.addEventListener("input", () => {
   input.style.height = "auto";
-  input.style.height =
-    Math.min(input.scrollHeight, 120) + "px";
+  input.style.height = Math.min(input.scrollHeight, 120) + "px";
 });
 
-input.addEventListener("keydown", (event) => {
+input.addEventListener("keydown", event => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     form.requestSubmit();
