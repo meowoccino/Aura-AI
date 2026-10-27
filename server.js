@@ -1,7 +1,7 @@
 
 import http from "node:http";
 import { Pool } from "pg";
-import { timingSafeEqual, randomUUID } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 
 const PORT = process.env.PORT || 3000;
 const ALLOWED_ORIGIN = "https://meowoccino.github.io";
@@ -57,10 +57,8 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(data));
   };
 
-  if (
-    req.method === "GET" &&
-    (pathname === "/" || pathname === "/health")
-  ) {
+  if (req.method === "GET" &&
+      (pathname === "/" || pathname === "/health")) {
     return send(200, { status: "ok", service: "AURA" });
   }
 
@@ -69,11 +67,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   const expected = Buffer.from(process.env.AURA_ACCESS_TOKEN);
-  const suppliedHeader = req.headers.authorization || "";
+  const header = req.headers.authorization || "";
   const supplied = Buffer.from(
-    suppliedHeader.startsWith("Bearer ")
-      ? suppliedHeader.slice(7)
-      : ""
+    header.startsWith("Bearer ") ? header.slice(7) : ""
   );
 
   if (
@@ -83,10 +79,8 @@ const server = http.createServer(async (req, res) => {
     return send(401, { error: "Access denied. Check your access token." });
   }
 
-  if (
-    req.method !== "POST" ||
-    !["/chat", "/history"].includes(pathname)
-  ) {
+  if (req.method !== "POST" ||
+      !["/chat", "/history"].includes(pathname)) {
     return send(404, { error: "Not found" });
   }
 
@@ -108,20 +102,22 @@ const server = http.createServer(async (req, res) => {
     }
 
     const sessionId = String(body.sessionId || "");
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)
-    ) {
+    const validSession =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    if (!validSession.test(sessionId)) {
       return send(400, { error: "Invalid session ID" });
     }
 
     if (pathname === "/history") {
       const result = await pool.query(
-        `SELECT role, content FROM (
-           SELECT id, role, content
+        `SELECT role, content, created_at
+         FROM (
+           SELECT id, role, content, created_at
            FROM aura_messages
            WHERE session_id = $1
            ORDER BY id DESC
-           LIMIT 30
+           LIMIT 100
          ) recent
          ORDER BY id ASC`,
         [sessionId]
@@ -133,7 +129,7 @@ const server = http.createServer(async (req, res) => {
     const text = String(body.text || "").trim();
 
     if (!text || text.length > 6000) {
-      return send(400, { error: "Message must be between 1 and 6000 characters" });
+      return send(400, { error: "Message must be 1–6000 characters" });
     }
 
     await pool.query(
@@ -143,7 +139,8 @@ const server = http.createServer(async (req, res) => {
     );
 
     const result = await pool.query(
-      `SELECT role, content FROM (
+      `SELECT role, content
+       FROM (
          SELECT id, role, content
          FROM aura_messages
          WHERE session_id = $1
@@ -167,7 +164,10 @@ const server = http.createServer(async (req, res) => {
         body: JSON.stringify({
           model: "venice/uncensored",
           messages: [
-            { role: "system", content: "Your name is AURA." },
+            {
+              role: "system",
+              content: "Your name is AURA. If asked your name, say AURA. Do not claim to have a different name."
+            },
             ...result.rows
           ],
           temperature: 0.8
@@ -183,19 +183,25 @@ const server = http.createServer(async (req, res) => {
       return send(502, { error: "Model request failed. Check Render logs." });
     }
 
-    const reply = String(data.choices?.[0]?.message?.content || "").trim();
+    const reply = String(
+      data.choices?.[0]?.message?.content || ""
+    ).trim();
 
     if (!reply) {
       return send(502, { error: "The model returned an empty reply." });
     }
 
-    await pool.query(
+    const saved = await pool.query(
       `INSERT INTO aura_messages (session_id, role, content)
-       VALUES ($1, 'assistant', $2)`,
+       VALUES ($1, 'assistant', $2)
+       RETURNING created_at`,
       [sessionId, reply]
     );
 
-    return send(200, { reply });
+    return send(200, {
+      reply,
+      created_at: saved.rows[0].created_at
+    });
   } catch (error) {
     console.error("AURA request failed:", error);
     return send(500, { error: "Request failed. Check Render logs." });
@@ -203,5 +209,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`AURA backend listening on port ${PORT}`);
+  console.log(`AURA listening on port ${PORT}`);
 });
