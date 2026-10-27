@@ -9,7 +9,6 @@ const server = http.createServer(async (req, res) => {
   const pathname =
     new URL(req.url, "http://localhost").pathname.replace(/\/+$/, "") || "/";
 
-  // Diagnostic: log requests without logging secrets or message contents.
   console.log(
     "Incoming request:",
     req.method,
@@ -25,7 +24,6 @@ const server = http.createServer(async (req, res) => {
   res.setHeader("Vary", "Origin");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
-  // Handle browser CORS preflight requests.
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -33,7 +31,6 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  // Health checks.
   if (
     (pathname === "/" || pathname === "/health") &&
     req.method === "GET"
@@ -53,7 +50,6 @@ const server = http.createServer(async (req, res) => {
     }));
   }
 
-  // Only allow the AURA website to make browser chat requests.
   if (origin !== ALLOWED_ORIGIN) {
     console.warn("Chat request rejected: origin not allowed");
     res.writeHead(403);
@@ -124,7 +120,7 @@ const server = http.createServer(async (req, res) => {
           "X-Title": "AURA"
         },
         body: JSON.stringify({
-          model: "venice/uncensored:free",
+          model: "venice/uncensored",
           messages: [
             {
               role: "system",
@@ -144,7 +140,6 @@ const server = http.createServer(async (req, res) => {
     const data = await upstream.json();
 
     if (!upstream.ok) {
-      // Log the status and provider error, never the API key.
       console.error(
         "OpenRouter error:",
         upstream.status,
