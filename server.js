@@ -1,69 +1,93 @@
 
 import http from "node:http";
+import { Pool } from "pg";
+import { timingSafeEqual, randomUUID } from "node:crypto";
 
 const PORT = process.env.PORT || 3000;
 const ALLOWED_ORIGIN = "https://meowoccino.github.io";
+
+for (const name of [
+  "DATABASE_URL",
+  "AURA_ACCESS_TOKEN",
+  "OPENROUTER_API_KEY"
+]) {
+  if (!process.env[name]) {
+    throw new Error(`${name} is missing from environment variables`);
+  }
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS aura_messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id UUID NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`);
 
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin || "";
   const pathname =
     new URL(req.url, "http://localhost").pathname.replace(/\/+$/, "") || "/";
 
-  console.log(
-    "Incoming request:",
-    req.method,
-    pathname,
-    "origin:",
-    origin || "(none)"
-  );
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Vary", "Origin");
 
   if (origin === ALLOWED_ORIGIN) {
     res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
   }
 
-  res.setHeader("Vary", "Origin");
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.writeHead(204);
-    return res.end();
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    return res.writeHead(204).end();
   }
+
+  const send = (status, data) => {
+    res.writeHead(status);
+    res.end(JSON.stringify(data));
+  };
 
   if (
-    (pathname === "/" || pathname === "/health") &&
-    req.method === "GET"
+    req.method === "GET" &&
+    (pathname === "/" || pathname === "/health")
   ) {
-    res.writeHead(200);
-    return res.end(JSON.stringify({
-      status: "ok",
-      service: "AURA"
-    }));
-  }
-
-  if (pathname !== "/chat" || req.method !== "POST") {
-    res.writeHead(404);
-    return res.end(JSON.stringify({
-      error: "Not found",
-      path: pathname
-    }));
+    return send(200, { status: "ok", service: "AURA" });
   }
 
   if (origin !== ALLOWED_ORIGIN) {
-    console.warn("Chat request rejected: origin not allowed");
-    res.writeHead(403);
-    return res.end(JSON.stringify({
-      error: "Origin not allowed"
-    }));
+    return send(403, { error: "Origin not allowed" });
   }
 
-  if (!process.env.OPENROUTER_API_KEY) {
-    console.error("OPENROUTER_API_KEY is missing in Render environment");
-    res.writeHead(500);
-    return res.end(JSON.stringify({
-      error: "Model key is not configured"
-    }));
+  const expected = Buffer.from(process.env.AURA_ACCESS_TOKEN);
+  const suppliedHeader = req.headers.authorization || "";
+  const supplied = Buffer.from(
+    suppliedHeader.startsWith("Bearer ")
+      ? suppliedHeader.slice(7)
+      : ""
+  );
+
+  if (
+    supplied.length !== expected.length ||
+    !timingSafeEqual(supplied, expected)
+  ) {
+    return send(401, { error: "Access denied. Check your access token." });
+  }
+
+  if (
+    req.method !== "POST" ||
+    !["/chat", "/history"].includes(pathname)
+  ) {
+    return send(404, { error: "Not found" });
   }
 
   try {
@@ -71,43 +95,64 @@ const server = http.createServer(async (req, res) => {
 
     for await (const chunk of req) {
       raw += chunk;
-
       if (raw.length > 30000) {
-        res.writeHead(413);
-        return res.end(JSON.stringify({
-          error: "Request too large"
-        }));
+        return send(413, { error: "Request too large" });
       }
     }
 
     let body;
-
     try {
-      body = JSON.parse(raw);
+      body = JSON.parse(raw || "{}");
     } catch {
-      res.writeHead(400);
-      return res.end(JSON.stringify({
-        error: "Invalid JSON request"
-      }));
+      return send(400, { error: "Invalid JSON" });
     }
 
+    const sessionId = String(body.sessionId || "");
     if (
-      !Array.isArray(body.messages) ||
-      body.messages.length === 0 ||
-      body.messages.length > 30
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)
     ) {
-      res.writeHead(400);
-      return res.end(JSON.stringify({
-        error: "Invalid messages"
-      }));
+      return send(400, { error: "Invalid session ID" });
     }
 
-    const messages = body.messages.map((message) => ({
-      role: message.role === "assistant" ? "assistant" : "user",
-      content: String(message.content || "").slice(0, 6000)
-    }));
+    if (pathname === "/history") {
+      const result = await pool.query(
+        `SELECT role, content FROM (
+           SELECT id, role, content
+           FROM aura_messages
+           WHERE session_id = $1
+           ORDER BY id DESC
+           LIMIT 30
+         ) recent
+         ORDER BY id ASC`,
+        [sessionId]
+      );
 
-    console.log("Sending chat request to OpenRouter");
+      return send(200, { messages: result.rows });
+    }
+
+    const text = String(body.text || "").trim();
+
+    if (!text || text.length > 6000) {
+      return send(400, { error: "Message must be between 1 and 6000 characters" });
+    }
+
+    await pool.query(
+      `INSERT INTO aura_messages (session_id, role, content)
+       VALUES ($1, 'user', $2)`,
+      [sessionId, text]
+    );
+
+    const result = await pool.query(
+      `SELECT role, content FROM (
+         SELECT id, role, content
+         FROM aura_messages
+         WHERE session_id = $1
+         ORDER BY id DESC
+         LIMIT 30
+       ) recent
+       ORDER BY id ASC`,
+      [sessionId]
+    );
 
     const upstream = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -122,11 +167,8 @@ const server = http.createServer(async (req, res) => {
         body: JSON.stringify({
           model: "venice/uncensored",
           messages: [
-            {
-              role: "system",
-              content: "Your name is AURA."
-            },
-            ...messages
+            { role: "system", content: "Your name is AURA." },
+            ...result.rows
           ],
           temperature: 0.8
         }),
@@ -134,49 +176,29 @@ const server = http.createServer(async (req, res) => {
       }
     );
 
-    console.log("OpenRouter HTTP status:", upstream.status);
-
     const data = await upstream.json();
 
     if (!upstream.ok) {
-      console.error(
-        "OpenRouter error:",
-        upstream.status,
-        data?.error?.message || data?.error?.code || "Unknown provider error"
-      );
-
-      res.writeHead(502);
-      return res.end(JSON.stringify({
-        error: "The model request failed. Check the backend logs."
-      }));
+      console.error("OpenRouter error:", upstream.status, data?.error);
+      return send(502, { error: "Model request failed. Check Render logs." });
     }
 
-    const reply = data.choices?.[0]?.message?.content;
+    const reply = String(data.choices?.[0]?.message?.content || "").trim();
 
     if (!reply) {
-      console.error("OpenRouter returned no message content");
-      res.writeHead(502);
-      return res.end(JSON.stringify({
-        error: "The model returned an empty reply."
-      }));
+      return send(502, { error: "The model returned an empty reply." });
     }
 
-    console.log("AURA reply generated successfully");
-
-    res.writeHead(200);
-    return res.end(JSON.stringify({ reply }));
-
-  } catch (error) {
-    console.error(
-      "Chat request failed:",
-      error?.name || "Error",
-      error?.message || "Unknown error"
+    await pool.query(
+      `INSERT INTO aura_messages (session_id, role, content)
+       VALUES ($1, 'assistant', $2)`,
+      [sessionId, reply]
     );
 
-    res.writeHead(500);
-    return res.end(JSON.stringify({
-      error: "Request failed. Please try again."
-    }));
+    return send(200, { reply });
+  } catch (error) {
+    console.error("AURA request failed:", error);
+    return send(500, { error: "Request failed. Check Render logs." });
   }
 });
 
