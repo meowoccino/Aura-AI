@@ -4,98 +4,826 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111114">
+<meta name="theme-color" content="#101116">
 <title>AURA</title>
+
 <style>
-*{box-sizing:border-box}
-:root{color-scheme:dark}
-body{margin:0;background:#111114;color:#f4f2f8;font-family:system-ui,sans-serif}
-.app{height:100dvh;max-width:760px;margin:auto;display:flex;flex-direction:column}
-header{padding:13px 16px;border-bottom:1px solid #292932;display:flex;align-items:center;gap:12px}
-.avatar{width:48px;height:48px;flex:none;border-radius:50%;position:relative;overflow:hidden;background:radial-gradient(circle at 35% 28%,#f3e8ff 0,#c4b5fd 18%,#8b5cf6 48%,#35205f 78%,#17121f 100%);box-shadow:0 0 22px #8b5cf655,inset 0 0 12px #ffffff44}
-.avatar:before{content:"";position:absolute;width:25px;height:25px;left:11px;top:10px;border:2px solid #f4eaff;border-radius:50%;box-shadow:0 0 12px #fff9}
-.avatar:after{content:"";position:absolute;width:5px;height:5px;left:21px;top:20px;border-radius:50%;background:white;box-shadow:0 0 10px 4px #fff9}
-h1{font-size:17px;margin:0;letter-spacing:1.5px}
-.sub{font-size:12px;color:#a5a2b0;margin-top:3px}
-#login{padding:10px 12px;display:flex;gap:8px;border-bottom:1px solid #292932}
-#login[hidden]{display:none}
-#token{flex:1;min-width:0;border:1px solid #34333e;border-radius:14px;padding:11px;background:#1b1b21;color:white;font:inherit}
-button{border:0;border-radius:14px;background:#a78bfa;color:#191522;font-size:15px;font-weight:650;padding:10px 16px}
-button:disabled{opacity:.5}
-#chat{flex:1;overflow:auto;padding:18px 13px;display:flex;flex-direction:column;gap:7px;scroll-behavior:smooth}
-.welcome{text-align:center;color:#aaa6b5;margin:auto;line-height:1.7;padding:20px}
-.welcome strong{display:block;color:#f4f2f8;font-size:25px;margin-bottom:8px}
-.message-row{display:flex;flex-direction:column;max-width:88%;gap:4px}
-.message-row.user{align-self:flex-end;align-items:flex-end}
-.message-row.assistant{align-self:flex-start;align-items:flex-start}
-.msg{padding:11px 14px;border-radius:18px;background:#202027;line-height:1.5;overflow-wrap:anywhere;white-space:pre-wrap}
-.user .msg{background:#7660c9;color:#fff;border-bottom-right-radius:5px}
-.assistant .msg{border-bottom-left-radius:5px}
-.stamp{font-size:10px;color:#8f8b9c;padding:0 5px}
-.user .stamp{text-align:right}
-form{display:flex;gap:8px;padding:11px 12px;padding-bottom:calc(11px + env(safe-area-inset-bottom));border-top:1px solid #292932;align-items:flex-end}
-textarea{flex:1;resize:none;max-height:120px;min-width:0;border:1px solid #34333e;border-radius:22px;padding:12px;background:#1b1b21;color:white;font:inherit;outline:none}
-textarea:focus,#token:focus{border-color:#a78bfa}
-#send{width:46px;height:46px;padding:0;border-radius:50%;font-size:22px}
+:root {
+  color-scheme: dark;
+  --bg: #101116;
+  --surface: #191b24;
+  --surface-2: #20232e;
+  --border: #303342;
+  --text: #f1f0f7;
+  --muted: #aaaabd;
+  --accent: #9878ff;
+  --accent-2: #7955ec;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body { overflow: hidden; }
+
+button, input, textarea { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  height: 100dvh;
+  height: 100svh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% -20%, #29213f55, transparent 55%),
+    var(--bg);
+}
+
+/* Header */
+
+header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 82px;
+  padding: 13px 18px;
+  border-bottom: 1px solid #ffffff0c;
+  background: #101116eF;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid #ffffff20;
+}
+
+.header-copy { min-width: 0; }
+
+.header-copy h1 {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: .7px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: #88889b;
+}
+
+.status-dot.online {
+  background: #53dba0;
+  box-shadow: 0 0 9px #53dba044;
+}
+
+/* Centered login */
+
+.login-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(ellipse at 50% 35%, #30234f65, transparent 58%),
+    var(--bg);
+}
+
+.login-screen[hidden] { display: none; }
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 27px 23px 24px;
+  border: 1px solid var(--border);
+  border-radius: 27px;
+  background: linear-gradient(155deg, #20212c, #15161d 80%);
+  box-shadow: 0 24px 70px #0006;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 27px;
+}
+
+.login-brand .avatar {
+  width: 90px;
+  height: 90px;
+  margin-bottom: 15px;
+}
+
+.login-brand h2 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 1.5px;
+}
+
+.login-brand p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#token {
+  width: 100%;
+  min-height: 51px;
+  padding: 13px 15px;
+  color: var(--text);
+  background: #111219;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  outline: none;
+  font-size: 15px;
+}
+
+#token:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px #9878ff20;
+}
+
+.primary-button {
+  min-height: 50px;
+  padding: 12px 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #a18aff, #7955ec);
+  border: 0;
+  border-radius: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: opacity .15s, transform .15s;
+}
+
+.primary-button:active { transform: scale(.985); }
+.primary-button:disabled { opacity: .6; }
+
+.login-error {
+  min-height: 18px;
+  margin: 0;
+  text-align: center;
+  color: #ff9baf;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Conversation */
+
+#chat {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 15px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #3b3b4b transparent;
+}
+
+.welcome {
+  margin: auto;
+  max-width: 330px;
+  padding: 25px 10px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.welcome strong {
+  display: block;
+  color: var(--text);
+  font-size: 27px;
+  letter-spacing: .5px;
+  margin-bottom: 8px;
+}
+
+.message-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  max-width: 91%;
+}
+
+.message-row.user {
+  align-self: flex-end;
+  justify-content: flex-end;
+}
+
+.message-row.assistant {
+  align-self: flex-start;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  margin-top: 2px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid #ffffff15;
+}
+
+.message-content {
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.message-row.user .message-content { align-items: flex-end; }
+
+.bubble {
+  min-width: 0;
+  max-width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ffffff08;
+  border-radius: 19px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.message-row.assistant .bubble {
+  border-bottom-left-radius: 6px;
+}
+
+.message-row.user .bubble {
+  background: linear-gradient(140deg, #6844db, #7955ec);
+  border-color: #a58aff25;
+  border-bottom-right-radius: 6px;
+}
+
+.timestamp {
+  padding: 0 5px;
+  color: #9293a9;
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.message-row.user .timestamp { text-align: right; }
+
+/* Markdown-style text formatting */
+
+.bubble strong {
+  color: #fff;
+  font-weight: 750;
+}
+
+.bubble em { font-style: italic; }
+
+.bubble del {
+  color: #b5b4c5;
+  text-decoration-color: #b5b4c5;
+}
+
+.bubble a {
+  color: #c8baff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.inline-code {
+  display: inline;
+  padding: 2px 6px;
+  border: 1px solid #9c82ff38;
+  border-radius: 6px;
+  background: #11121b;
+  color: #d9b0ff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: .9em;
+  overflow-wrap: anywhere;
+}
+
+/* Fenced code blocks */
+
+.code-block {
+  width: 100%;
+  margin: 8px 0 3px;
+  overflow: hidden;
+  border: 1px solid #343647;
+  border-radius: 13px;
+  background: #101219;
+  white-space: normal;
+}
+
+.code-head {
+  min-height: 38px;
+  padding: 7px 10px 7px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #1a1c27;
+  border-bottom: 1px solid #343647;
+  color: #b6b5ca;
+  font-size: 11px;
+  letter-spacing: .35px;
+}
+
+.copy-button {
+  width: 34px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #d8d5ed;
+  background: transparent;
+  cursor: pointer;
+}
+
+.copy-button:active { background: #ffffff15; }
+.copy-button svg { width: 18px; height: 18px; }
+
+.code-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.code-line {
+  min-width: max-content;
+  display: flex;
+  align-items: stretch;
+  font: 13px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.line-number {
+  width: 38px;
+  flex: none;
+  padding: 7px 9px;
+  text-align: right;
+  color: #74778f;
+  background: #171923;
+  border-right: 1px solid #292c3b;
+  user-select: none;
+}
+
+.code-text {
+  display: block;
+  padding: 7px 12px;
+  color: #e2e0f2;
+  white-space: pre;
+}
+
+.syntax-keyword { color: #c9a2ff; }
+.syntax-string { color: #a6dca7; }
+.syntax-number { color: #f5bf85; }
+.syntax-comment { color: #8589a1; font-style: italic; }
+.syntax-tag { color: #86c8ff; }
+.syntax-plain { color: #e2e0f2; }
+
+/* Composer */
+
+.composer {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+  padding: 12px 13px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid #ffffff0d;
+  background: #111218;
+}
+
+#input {
+  flex: 1;
+  min-width: 0;
+  min-height: 49px;
+  max-height: 145px;
+  resize: none;
+  padding: 13px 16px;
+  border: 1px solid #38394b;
+  border-radius: 25px;
+  outline: none;
+  background: #191b25;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.45;
+  overflow-y: auto;
+}
+
+#input::placeholder { color: #9292a9; }
+
+#input:focus {
+  border-color: #8e70f2;
+  box-shadow: 0 0 0 2px #9878ff12;
+}
+
+#send {
+  width: 49px;
+  height: 49px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: white;
+  background: linear-gradient(140deg, #a18aff, #7955ec);
+  cursor: pointer;
+  box-shadow: 0 3px 14px #7652ed30;
+  transition: transform .15s, opacity .15s;
+}
+
+#send:active { transform: scale(.94); }
+#send:disabled { opacity: .45; cursor: default; }
+#send svg { width: 23px; height: 23px; }
+
+/* Responsive */
+
+@media (min-width: 650px) {
+  .app {
+    border-left: 1px solid #ffffff0b;
+    border-right: 1px solid #ffffff0b;
+  }
+
+  #chat { padding-left: 22px; padding-right: 22px; }
+  .bubble { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
 </style>
 </head>
+
 <body>
 <div class="app">
-<header>
-  <div class="avatar" role="img" aria-label="AURA's avatar"></div>
-  <div>
-    <h1>AURA</h1>
-    <div class="sub" id="status">Your conversation space</div>
-  </div>
-</header>
 
-<div id="login">
-  <input id="token" type="password" autocomplete="current-password"
-         placeholder="Private access token" aria-label="Access token">
-  <button id="connect" type="button">Connect</button>
-</div>
+  <header>
+    <img class="avatar" src="./avatar.png" alt="AURA"
+         onerror="this.style.visibility='hidden'">
+    <div class="header-copy">
+      <h1>AURA</h1>
+      <div class="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="status">Not connected</span>
+      </div>
+    </div>
+  </header>
 
-<main id="chat">
-  <div class="welcome">
-    <strong>AURA</strong>
-    A new conversation, saved as we go.
-  </div>
-</main>
+  <main id="chat" aria-live="polite">
+    <div class="welcome">
+      <strong>AURA</strong>
+      Your conversation, saved as we go.
+    </div>
+  </main>
 
-<form id="form">
-  <textarea id="input" rows="1" placeholder="Message AURA..."
-            aria-label="Message AURA" disabled></textarea>
-  <button id="send" type="submit" aria-label="Send" disabled>↑</button>
-</form>
+  <form class="composer" id="form">
+    <textarea id="input" rows="1"
+      placeholder="Message AURA…"
+      aria-label="Message AURA" disabled></textarea>
+
+    <button id="send" type="submit" aria-label="Send message" disabled>
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M21 3 10.8 13.2"
+          stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m21 3-6.5 18-3.7-7.8L3 9.5 21 3Z"
+          stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </form>
+
+  <section class="login-screen" id="loginScreen"
+           aria-label="Connect to AURA">
+    <div class="login-card">
+      <div class="login-brand">
+        <img class="avatar" src="./avatar.png" alt="AURA"
+             onerror="this.style.visibility='hidden'">
+        <h2>AURA</h2>
+        <p>Your private conversation space.</p>
+      </div>
+
+      <form id="loginForm">
+        <input id="token" type="password"
+          autocomplete="current-password"
+          placeholder="Private access token"
+          aria-label="Private access token" required>
+        <button class="primary-button" id="connect" type="submit">
+          Connect
+        </button>
+        <p class="login-error" id="loginError" role="status"></p>
+      </form>
+    </div>
+  </section>
+
 </div>
 
 <script>
+"use strict";
+
 const API_URL = "https://aura-svzi.onrender.com";
 
-const chat = document.querySelector("#chat");
-const input = document.querySelector("#input");
-const form = document.querySelector("#form");
-const send = document.querySelector("#send");
-const statusText = document.querySelector("#status");
-const login = document.querySelector("#login");
-const tokenInput = document.querySelector("#token");
-const connectButton = document.querySelector("#connect");
+const $ = selector => document.querySelector(selector);
+
+const chat = $("#chat");
+const input = $("#input");
+const form = $("#form");
+const sendButton = $("#send");
+const statusText = $("#status");
+const statusDot = $("#statusDot");
+const loginScreen = $("#loginScreen");
+const loginForm = $("#loginForm");
+const tokenInput = $("#token");
+const connectButton = $("#connect");
+const loginError = $("#loginError");
 
 let token = "";
 let busy = false;
 
 let sessionId = localStorage.getItem("aura_session_id");
+
 if (!sessionId) {
   sessionId = crypto.randomUUID();
   localStorage.setItem("aura_session_id", sessionId);
 }
 
+function setStatus(message, online = false) {
+  statusText.textContent = message;
+  statusDot.classList.toggle("online", online);
+}
+
 function formatTime(value = new Date()) {
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "";
+
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit"
+  });
+}
+
+function escapeText(text) {
+  return String(text);
+}
+
+function makeSvgCopyIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("aria-hidden", "true");
+
+  const path1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  path1.setAttribute("x", "8");
+  path1.setAttribute("y", "8");
+  path1.setAttribute("width", "12");
+  path1.setAttribute("height", "13");
+  path1.setAttribute("rx", "2");
+  path1.setAttribute("stroke", "currentColor");
+  path1.setAttribute("stroke-width", "1.7");
+
+  const path2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path2.setAttribute("d", "M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2");
+  path2.setAttribute("stroke", "currentColor");
+  path2.setAttribute("stroke-width", "1.7");
+  path2.setAttribute("stroke-linecap", "round");
+
+  svg.append(path2, path1);
+  return svg;
+}
+
+/* A small safe formatter: text is always inserted as text, never raw HTML. */
+
+function appendInline(parent, source) {
+  const pattern =
+    /(\*\*.+?\*\*|__.+?__|~~.+?~~|\*[^*\n]+\*|_[^_\n]+_|`[^`\n]+`)/g;
+
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(source)) !== null) {
+    if (match.index > lastIndex) {
+      parent.appendChild(
+        document.createTextNode(source.slice(lastIndex, match.index))
+      );
+    }
+
+    const token = match[0];
+    let element;
+
+    if (token.startsWith("**") || token.startsWith("__")) {
+      element = document.createElement("strong");
+      element.textContent = token.slice(2, -2);
+    } else if (token.startsWith("~~")) {
+      element = document.createElement("del");
+      element.textContent = token.slice(2, -2);
+    } else if (token.startsWith("`")) {
+      element = document.createElement("code");
+      element.className = "inline-code";
+      element.textContent = token.slice(1, -1);
+    } else {
+      element = document.createElement("em");
+      element.textContent = token.slice(1, -1);
+    }
+
+    parent.appendChild(element);
+    lastIndex = match.index + token.length;
+  }
+
+  if (lastIndex < source.length) {
+    parent.appendChild(
+      document.createTextNode(source.slice(lastIndex))
+    );
+  }
+}
+
+function syntaxHighlight(line, language) {
+  const fragment = document.createDocumentFragment();
+
+  // Highlight only common tokens. All content is inserted as text.
+  const pattern =
+    /(\/\/.*$|#.*$|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|\b(?:const|let|var|function|return|if|else|await|async|new|class|import|from|export|default|true|false|null|undefined|throw|try|catch|for|while|public|private|static|def|print|None|True|False)\b|<\/?[\w-]+|\/?>)/g;
+
+  let last = 0;
+  let match;
+
+  while ((match = pattern.exec(line)) !== null) {
+    if (match.index > last) {
+      const span = document.createElement("span");
+      span.className = "syntax-plain";
+      span.textContent = line.slice(last, match.index);
+      fragment.appendChild(span);
+    }
+
+    const value = match[0];
+    const span = document.createElement("span");
+
+    if (/^(\/\/|#)/.test(value)) {
+      span.className = "syntax-comment";
+    } else if (/^["'`]/.test(value)) {
+      span.className = "syntax-string";
+    } else if (/^\d/.test(value)) {
+      span.className = "syntax-number";
+    } else if (/^<\/?[\w-]+|^\/?>$/.test(value)) {
+      span.className = "syntax-tag";
+    } else {
+      span.className = "syntax-keyword";
+    }
+
+    span.textContent = value;
+    fragment.appendChild(span);
+    last = match.index + value.length;
+  }
+
+  if (last < line.length) {
+    const span = document.createElement("span");
+    span.className = "syntax-plain";
+    span.textContent = line.slice(last);
+    fragment.appendChild(span);
+  }
+
+  return fragment;
+}
+
+function makeCodeBlock(code, language = "") {
+  const block = document.createElement("div");
+  block.className = "code-block";
+
+  const head = document.createElement("div");
+  head.className = "code-head";
+
+  const label = document.createElement("span");
+  label.textContent = language || "CODE";
+
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.className = "copy-button";
+  copy.setAttribute("aria-label", "Copy code");
+  copy.title = "Copy code";
+  copy.appendChild(makeSvgCopyIcon());
+
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      copy.textContent = "Copied";
+      setTimeout(() => {
+        copy.textContent = "";
+        copy.appendChild(makeSvgCopyIcon());
+      }, 1200);
+    } catch {
+      copy.textContent = "Select code";
+    }
+  });
+
+  head.append(label, copy);
+
+  const scroll = document.createElement("div");
+  scroll.className = "code-scroll";
+
+  const lines = code.replace(/\n$/, "").split("\n");
+
+  lines.forEach((line, index) => {
+    const row = document.createElement("div");
+    row.className = "code-line";
+
+    const number = document.createElement("span");
+    number.className = "line-number";
+    number.textContent = String(index + 1);
+
+    const content = document.createElement("span");
+    content.className = "code-text";
+    content.appendChild(syntaxHighlight(line, language));
+
+    row.append(number, content);
+    scroll.appendChild(row);
+  });
+
+  block.append(head, scroll);
+  return block;
+}
+
+function renderMessageText(container, text) {
+  const parts = String(text).split(/```/);
+
+  parts.forEach((part, index) => {
+    if (index % 2 === 1) {
+      const newline = part.indexOf("\n");
+      let language = "";
+      let code = part;
+
+      if (newline !== -1) {
+        const firstLine = part.slice(0, newline).trim();
+
+        if (/^[a-zA-Z0-9_+#.-]{1,30}$/.test(firstLine)) {
+          language = firstLine;
+          code = part.slice(newline + 1);
+        }
+      }
+
+      container.appendChild(makeCodeBlock(code, language));
+    } else if (part) {
+      const lines = part.split("\n");
+
+      lines.forEach((line, lineIndex) => {
+        appendInline(container, line);
+        if (lineIndex < lines.length - 1) {
+          container.appendChild(document.createElement("br"));
+        }
+      });
+    }
   });
 }
 
@@ -105,17 +833,32 @@ function addBubble(text, role, timestamp = new Date()) {
   const row = document.createElement("div");
   row.className = "message-row " + role;
 
-  const bubble = document.createElement("div");
-  bubble.className = "msg";
-  bubble.textContent = text;
+  if (role === "assistant") {
+    const avatar = document.createElement("img");
+    avatar.className = "message-avatar";
+    avatar.src = "./avatar.png";
+    avatar.alt = "";
+    avatar.onerror = () => { avatar.style.visibility = "hidden"; };
+    row.appendChild(avatar);
+  }
 
-  const stamp = document.createElement("div");
-  stamp.className = "stamp";
+  const content = document.createElement("div");
+  content.className = "message-content";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  renderMessageText(bubble, escapeText(text));
+
+  const stamp = document.createElement("time");
+  stamp.className = "timestamp";
+  stamp.dateTime = new Date(timestamp).toISOString();
   stamp.textContent = formatTime(timestamp);
   stamp.title = new Date(timestamp).toLocaleString();
 
-  row.append(bubble, stamp);
+  content.append(bubble, stamp);
+  row.appendChild(content);
   chat.appendChild(row);
+
   chat.scrollTop = chat.scrollHeight;
 
   return { row, bubble, stamp };
@@ -123,12 +866,18 @@ function addBubble(text, role, timestamp = new Date()) {
 
 function showWelcome() {
   chat.innerHTML = "";
+
   const welcome = document.createElement("div");
   welcome.className = "welcome";
 
   const title = document.createElement("strong");
   title.textContent = "AURA";
-  welcome.append(title, document.createTextNode("A new conversation, saved as we go."));
+
+  welcome.append(
+    title,
+    document.createTextNode("Your conversation, saved as we go.")
+  );
+
   chat.appendChild(welcome);
 }
 
@@ -149,98 +898,112 @@ async function api(path, body) {
       token = "";
       sessionStorage.removeItem("aura_access_token");
       input.disabled = true;
-      send.disabled = true;
-      login.hidden = false;
-      statusText.textContent = "Please reconnect";
+      sendButton.disabled = true;
+      loginScreen.hidden = false;
+      setStatus("Reconnect required");
     }
+
     throw new Error(data.error || "Request failed");
   }
 
   return data;
 }
 
-async function connect() {
-  const entered = tokenInput.value.trim();
-  token = entered || sessionStorage.getItem("aura_access_token") || "";
+async function connect(accessToken) {
+  token = accessToken.trim();
 
   if (!token) {
-    statusText.textContent = "Enter your access token";
+    loginError.textContent = "Enter your access token.";
     return;
   }
 
   connectButton.disabled = true;
-  statusText.textContent = "Connecting…";
+  connectButton.textContent = "Connecting…";
+  loginError.textContent = "";
+  setStatus("Connecting…");
 
   try {
     const data = await api("/history", { sessionId });
 
     sessionStorage.setItem("aura_access_token", token);
-    login.hidden = true;
-    input.disabled = false;
-    send.disabled = false;
+
     chat.innerHTML = "";
 
     if (!data.messages.length) {
       showWelcome();
     } else {
-      data.messages.forEach(message =>
-        addBubble(message.content, message.role, message.created_at)
-      );
+      data.messages.forEach(message => {
+        addBubble(
+          message.content,
+          message.role,
+          message.created_at || new Date()
+        );
+      });
     }
 
-    statusText.textContent = "Connected · history restored";
+    loginScreen.hidden = true;
+    input.disabled = false;
+    sendButton.disabled = false;
+    setStatus("Online", true);
     chat.scrollTop = chat.scrollHeight;
+    input.focus();
   } catch (error) {
     token = "";
-    login.hidden = false;
-    statusText.textContent = error.message.includes("Access denied")
-      ? "Incorrect access token"
-      : "Could not connect — check Render";
+    loginError.textContent =
+      error.message.includes("Access denied")
+        ? "That access token wasn't accepted."
+        : "Couldn't connect. Check Render and try again.";
+
+    setStatus("Not connected");
     console.error("AURA connection error:", error);
   } finally {
     connectButton.disabled = false;
+    connectButton.textContent = "Connect";
   }
 }
 
-connectButton.addEventListener("click", connect);
-tokenInput.addEventListener("keydown", event => {
-  if (event.key === "Enter") connect();
+loginForm.addEventListener("submit", event => {
+  event.preventDefault();
+  connect(tokenInput.value);
 });
-
-token = sessionStorage.getItem("aura_access_token") || "";
-if (token) connect();
 
 form.addEventListener("submit", async event => {
   event.preventDefault();
 
   const text = input.value.trim();
-  if (!text || send.disabled || busy) return;
+  if (!text || busy || !token) return;
 
-  const userTime = new Date();
-  addBubble(text, "user", userTime);
+  busy = true;
+  sendButton.disabled = true;
+
+  addBubble(text, "user", new Date());
 
   input.value = "";
   input.style.height = "auto";
-  busy = true;
-  send.disabled = true;
-  statusText.textContent = "AURA is thinking…";
+  setStatus("Thinking…", true);
 
   const waiting = addBubble("Thinking…", "assistant", new Date());
 
   try {
     const data = await api("/chat", { sessionId, text });
-    waiting.bubble.textContent = data.reply;
-    waiting.stamp.textContent = formatTime(data.created_at || new Date());
-    waiting.stamp.title = new Date(data.created_at || Date.now()).toLocaleString();
-    statusText.textContent = "Connected · history saved";
+
+    waiting.bubble.innerHTML = "";
+    renderMessageText(waiting.bubble, data.reply);
+
+    const time = data.created_at || new Date();
+    waiting.stamp.dateTime = new Date(time).toISOString();
+    waiting.stamp.textContent = formatTime(time);
+    waiting.stamp.title = new Date(time).toLocaleString();
+
+    setStatus("Online", true);
   } catch (error) {
-    waiting.bubble.textContent = "I couldn't complete that request. " + error.message;
-    waiting.stamp.textContent = formatTime(new Date());
-    statusText.textContent = "Connection issue";
+    waiting.bubble.textContent =
+      "I couldn't complete that request. Please try again.";
+    setStatus("Connection issue");
     console.error("AURA chat error:", error);
   } finally {
     busy = false;
-    send.disabled = !token;
+    sendButton.disabled = !token;
     input.focus();
     chat.scrollTop = chat.scrollHeight;
   }
@@ -248,7 +1011,7 @@ form.addEventListener("submit", async event => {
 
 input.addEventListener("input", () => {
   input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 120) + "px";
+  input.style.height = Math.min(input.scrollHeight, 145) + "px";
 });
 
 input.addEventListener("keydown", event => {
@@ -257,6 +1020,17 @@ input.addEventListener("keydown", event => {
     form.requestSubmit();
   }
 });
+
+// Reconnect using this tab's session token. The centered login
+// appears only when a token is needed or the saved one is rejected.
+const savedToken = sessionStorage.getItem("aura_access_token");
+
+if (savedToken) {
+  connect(savedToken);
+} else {
+  loginScreen.hidden = false;
+  setStatus("Not connected");
+}
 </script>
 </body>
 </html>
