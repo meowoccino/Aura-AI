@@ -22,39 +22,123 @@ h1{font-size:17px;margin:0}
 .assistant{align-self:flex-start;border-bottom-left-radius:5px}
 form{display:flex;gap:8px;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));border-top:1px solid #292932}
 textarea{flex:1;resize:none;max-height:120px;border:1px solid #34333e;border-radius:22px;padding:12px;background:#1b1b21;color:white;font:inherit;outline:none}
-button{width:46px;border:0;border-radius:50%;background:#a78bfa;color:#191522;font-size:22px;font-weight:bold}
+button{width:46px;min-width:46px;border:0;border-radius:50%;background:#a78bfa;color:#191522;font-size:22px;font-weight:bold}
+button:disabled{opacity:.5}
 </style>
 </head>
 <body>
 <div class="app">
-<header><div class="avatar">A</div><div><h1>AURA</h1><div class="sub">Your AI companion</div></div></header>
-<main id="chat"><div class="welcome"><strong>Hi, I'm AURA.</strong>This is our little space to talk.<br>What would you like to talk about?</div></main>
-<form id="form"><textarea id="input" rows="1" placeholder="Message AURA..." aria-label="Message AURA"></textarea><button aria-label="Send">↑</button></form>
+<header>
+  <div class="avatar">A</div>
+  <div>
+    <h1>AURA</h1>
+    <div class="sub" id="status">Your AI companion</div>
+  </div>
+</header>
+
+<main id="chat">
+  <div class="welcome">
+    <strong>Hi, I'm AURA.</strong>
+    This is our little space to talk.<br>
+    What would you like to talk about?
+  </div>
+</main>
+
+<form id="form">
+  <textarea id="input" rows="1" placeholder="Message AURA..." aria-label="Message AURA"></textarea>
+  <button id="send" aria-label="Send" type="submit">↑</button>
+</form>
 </div>
+
 <script>
-const chat=document.querySelector('#chat');
-const input=document.querySelector('#input');
-document.querySelector('#form').addEventListener('submit',e=>{
- e.preventDefault();
- const text=input.value.trim();
- if(!text)return;
- chat.querySelector('.welcome')?.remove();
- const bubble=document.createElement('div');
- bubble.className='msg user';
- bubble.textContent=text;
- chat.appendChild(bubble);
- input.value='';
- const reply=document.createElement('div');
- reply.className='msg assistant';
- reply.textContent="I'm here. We'll connect my AI brain in the next step.";
- chat.appendChild(reply);
- chat.scrollTop=chat.scrollHeight;
+const API_URL = "https://aura-svzi.onrender.com";
+
+const chat = document.querySelector("#chat");
+const input = document.querySelector("#input");
+const form = document.querySelector("#form");
+const send = document.querySelector("#send");
+const statusText = document.querySelector("#status");
+
+const messages = [];
+
+function addBubble(text, role) {
+  chat.querySelector(".welcome")?.remove();
+
+  const bubble = document.createElement("div");
+  bubble.className = "msg " + role;
+  bubble.textContent = text;
+
+  chat.appendChild(bubble);
+  chat.scrollTop = chat.scrollHeight;
+
+  return bubble;
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const text = input.value.trim();
+  if (!text || send.disabled) return;
+
+  addBubble(text, "user");
+  messages.push({ role: "user", content: text });
+
+  input.value = "";
+  input.style.height = "auto";
+  send.disabled = true;
+  statusText.textContent = "AURA is thinking…";
+
+  const waiting = addBubble("Thinking…", "assistant");
+
+  try {
+    const response = await fetch(API_URL + "/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: messages.slice(-30) })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "The server returned an error.");
+    }
+
+    const reply = String(
+      data.reply || "I couldn't generate a reply."
+    );
+
+    waiting.textContent = reply;
+    messages.push({ role: "assistant", content: reply });
+    statusText.textContent = "Your AI companion";
+
+  } catch (error) {
+    waiting.textContent =
+      "I couldn't connect just now. Please try again in a moment.";
+
+    statusText.textContent = "Connection issue";
+    console.error("AURA chat error:", error);
+
+    // Remove the failed message from the conversation history.
+    messages.pop();
+
+  } finally {
+    send.disabled = false;
+    input.focus();
+    chat.scrollTop = chat.scrollHeight;
+  }
 });
-input.addEventListener('keydown',e=>{
- if(e.key==='Enter'&&!e.shiftKey){
-  e.preventDefault();
-  document.querySelector('#form').requestSubmit();
- }
+
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  input.style.height =
+    Math.min(input.scrollHeight, 120) + "px";
+});
+
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
 });
 </script>
 </body>
